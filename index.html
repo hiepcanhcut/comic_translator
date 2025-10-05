@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Translator Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --accent: #ff6b6b;
+            --dark: #2d3748;
+            --light: #f8f9fa;
+            --success: #38b2ac;
+            --warning: #f6ad55;
+            --danger: #e53e3e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: var(--light);
+        }
+
+        .language-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .lang-option {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .lang-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .lang-option.active {
+            border-color: var(--primary);
+            background: rgba(106, 17, 203, 0.2);
+        }
+
+        .lang-flag {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(106, 17, 203, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            background: #4a5568;
+            cursor: not-allowed;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            width: 100%;
+            border-radius: 10px;
+            background: #1a202c;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .status {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .debug-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .debug-content {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .debug-line {
+            margin-bottom: 5px;
+            padding: 3px 0;
+        }
+
+        .debug-line.success { color: var(--success); }
+        .debug-line.error { color: var(--danger); }
+        .debug-line.warning { color: var(--warning); }
+        .debug-line.info { color: #63b3ed; }
+
+        .text-preview {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .text-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-panel {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+        }
+
+        .setting-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .setting-item input, .setting-item select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-language"></i> Manga Translator Pro</h1>
+            <p class="subtitle">Dịch truyện tranh Nhật Bản và tiếng Anh sang tiếng Việt với AI</p>
+        </header>
+
+        <div class="main-content">
+            <div class="card">
+                <h2><i class="fas fa-upload"></i> Tải ảnh lên</h2>
+                
+                <div class="language-selector">
+                    <div class="lang-option active" data-lang="eng">
+                        <div class="lang-flag">🇺🇸</div>
+                        <div>Tiếng Anh</div>
+                    </div>
+                    <div class="lang-option" data-lang="jpn">
+                        <div class="lang-flag">🇯🇵</div>
+                        <div>Tiếng Nhật</div>
+                    </div>
+                </div>
+                
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary);"></i>
+                    <h3>Kéo thả ảnh vào đây</h3>
+                    <p>hoặc</p>
+                    <input type="file" id="imageInput" accept="image/*" hidden>
+                    <button class="btn" id="selectImageBtn"><i class="fas fa-folder-open"></i> Chọn ảnh</button>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn" id="translateBtn" disabled><i class="fas fa-language"></i> Dịch Ảnh</button>
+                    <button class="btn" id="downloadBtn" disabled><i class="fas fa-download"></i> Tải Xuống</button>
+                    <button class="btn" id="clearBtn"><i class="fas fa-trash"></i> Xóa</button>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress" id="progressBar"></div>
+                    </div>
+                    <div class="status">
+                        <span id="progressText">Sẵn sàng</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                </div>
+
+                <div class="settings-panel">
+                    <h3><i class="fas fa-cog"></i> Cài đặt</h3>
+                    <div class="setting-item">
+                        <label>Google Translate API Key:</label>
+                        <input type="text" id="apiKey" value="AIzaSyA9rucvmRB38JUrj3tGJOrzLYCnGLS3sVo" placeholder="Nhập API key">
+                        <div style="font-size: 0.85rem; margin-top: 5px; color: var(--success);">
+                            ✅ API key đã được thiết lập
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>Ngưỡng OCR (Confidence): <span id="confidenceValue">40</span>%</label>
+                        <input type="range" id="ocrConfidence" min="20" max="80" value="40" 
+                               oninput="document.getElementById('confidenceValue').textContent = this.value">
+                    </div>
+                    <div class="setting-item">
+                        <label>Kích thước chữ:</label>
+                        <select id="fontSize">
+                            <option value="14">Rất nhỏ</option>
+                            <option value="16">Nhỏ</option>
+                            <option value="18" selected>Trung bình</option>
+                            <option value="22">Lớn</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>Màu chữ:</label>
+                        <input type="color" id="textColor" value="#000000">
+                    </div>
+                    <div class="setting-item">
+                        <label>Màu nền xóa chữ cũ:</label>
+                        <input type="color" id="bgColor" value="#ffffff">
+                    </div>
+                    <div class="setting-item">
+                        <label>Độ trong suốt nền (%): <span id="opacityValue">85</span></label>
+                        <input type="range" id="bgOpacity" min="0" max="100" value="85" 
+                               oninput="document.getElementById('opacityValue').textContent = this.value">
+                    </div>
+                    <div class="setting-item">
+                        <label>
+                            <input type="checkbox" id="showBorder">
+                            Hiện viền vùng dịch (debug)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2><i class="fas fa-images"></i> Kết quả</h2>
+                
+                <div>
+                    <h3>Ảnh gốc:</h3>
+                    <canvas id="originalCanvas"></canvas>
+                </div>
+                
+                <div>
+                    <h3>Ảnh đã dịch:</h3>
+                    <canvas id="translatedCanvas"></canvas>
+                </div>
+
+                <div class="text-preview" id="textPreview">
+                    <h3>Văn bản đã dịch:</h3>
+                    <div id="textItems"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2><i class="fas fa-terminal"></i> Thông tin xử lý</h2>
+            <div class="debug-panel" id="debugOutput">
+                <div class="debug-content">
+                    <div class="debug-line info">[Hệ thống] Manga Translator Pro đã sẵn sàng</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MangaTranslator {
+            constructor() {
+                this.originalImage = null;
+                this.translatedImage = null;
+                this.currentLanguage = 'eng';
+                this.textRegions = [];
+                this.worker = null;
+                this.isInitialized = false;
+                
+                this.initializeElements();
+                this.initializeEventListeners();
+                this.initializeTesseract();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.imageInput = document.getElementById('imageInput');
+                this.selectImageBtn = document.getElementById('selectImageBtn');
+                this.translateBtn = document.getElementById('translateBtn');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.originalCanvas = document.getElementById('originalCanvas');
+                this.translatedCanvas = document.getElementById('translatedCanvas');
+                this.debugOutput = document.getElementById('debugOutput');
+                this.progressBar = document.getElementById('progressBar');
+                this.progressText = document.getElementById('progressText');
+                this.progressPercent = document.getElementById('progressPercent');
+                this.textPreview = document.getElementById('textPreview');
+                this.textItems = document.getElementById('textItems');
+                this.langOptions = document.querySelectorAll('.lang-option');
+                this.fontSizeSelect = document.getElementById('fontSize');
+                this.textColorInput = document.getElementById('textColor');
+                this.bgColorInput = document.getElementById('bgColor');
+                this.bgOpacityInput = document.getElementById('bgOpacity');
+                this.showBorderCheckbox = document.getElementById('showBorder');
+                this.apiKeyInput = document.getElementById('apiKey');
+                this.ocrConfidenceInput = document.getElementById('ocrConfidence');
+            }
+
+            initializeEventListeners() {
+                this.langOptions.forEach(option => {
+                    option.addEventListener('click', () => {
+                        this.langOptions.forEach(opt => opt.classList.remove('active'));
+                        option.classList.add('active');
+                        this.currentLanguage = option.dataset.lang;
+                        this.log(`Đã chọn ngôn ngữ: ${this.currentLanguage === 'jpn' ? 'Tiếng Nhật' : 'Tiếng Anh'}`, 'info');
+                        this.initializeTesseract();
+                    });
+                });
+
+                this.selectImageBtn.addEventListener('click', () => this.imageInput.click());
+                this.imageInput.addEventListener('change', (e) => this.handleImageUpload(e));
+                
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.style.borderColor = 'var(--primary)';
+                });
+                
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                        this.imageInput.files = e.dataTransfer.files;
+                        this.handleImageUpload(e);
+                    }
+                });
+
+                this.translateBtn.addEventListener('click', () => this.translateImage());
+                this.downloadBtn.addEventListener('click', () => this.downloadImage());
+                this.clearBtn.addEventListener('click', () => this.clearAll());
+            }
+
+            async initializeTesseract() {
+                try {
+                    this.log('Đang khởi tạo Tesseract OCR...', 'info');
+                    
+                    if (this.worker) {
+                        await this.worker.terminate();
+                    }
+                    
+                    // Khởi tạo worker với cú pháp đúng cho Tesseract.js v4
+                    this.worker = await Tesseract.createWorker({
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                this.updateProgress(30 + (m.progress * 40), `Đang nhận diện: ${Math.round(m.progress * 100)}%`);
+                            }
+                        }
+                    });
+                    
+                    // Load và initialize language
+                    await this.worker.loadLanguage(this.currentLanguage);
+                    await this.worker.initialize(this.currentLanguage);
+                    
+                    // Cấu hình parameters
+                    await this.worker.setParameters({
+                        tessedit_pageseg_mode: '3', // PSM_AUTO
+                    });
+                    
+                    this.isInitialized = true;
+                    this.log(`Tesseract OCR sẵn sàng (${this.currentLanguage})`, 'success');
+                } catch (error) {
+                    this.log(`Lỗi khởi tạo: ${error.message || error}`, 'error');
+                    console.error('Chi tiết lỗi Tesseract:', error);
+                    this.isInitialized = false;
+                }
+            }
+
+            async handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                if (file.size > 5 * 1024 * 1024) {
+                    this.log('File quá lớn (>5MB)', 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.originalImage = new Image();
+                    this.originalImage.onload = () => {
+                        this.displayImage(this.originalImage, this.originalCanvas);
+                        this.translateBtn.disabled = false;
+                        this.log(`Đã tải: ${file.name} (${this.originalImage.width}x${this.originalImage.height})`, 'success');
+                    };
+                    this.originalImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            displayImage(img, canvas) {
+                const ctx = canvas.getContext('2d');
+                const maxWidth = 600;
+                const scale = Math.min(1, maxWidth / img.width);
+                
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            }
+
+            preprocessImage(img) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Cải thiện xử lý ảnh cho manga
+                for (let i = 0; i < data.length; i += 4) {
+                    // Chuyển sang grayscale
+                    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                    
+                    // Tăng độ tương phản mạnh hơn
+                    const contrast = 2.0; // Tăng từ 1.5 lên 2.0
+                    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                    const newGray = factor * (gray - 128) + 128;
+                    
+                    // Adaptive threshold
+                    const threshold = 140; // Tăng từ 128 lên 140
+                    const finalValue = newGray > threshold ? 255 : 0;
+                    
+                    data[i] = finalValue;
+                    data[i + 1] = finalValue;
+                    data[i + 2] = finalValue;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                this.log('🔧 Đã tiền xử lý ảnh (tối ưu cho manga)', 'info');
+                
+                return canvas;
+            }
+
+            async translateImage() {
+                if (!this.originalImage || !this.isInitialized) {
+                    this.log('Chưa sẵn sàng', 'error');
+                    return;
+                }
+
+                this.translateBtn.disabled = true;
+                this.updateProgress(10, 'Đang xử lý...');
+
+                try {
+                    this.updateProgress(30, 'Đang nhận diện văn bản...');
+                    
+                    const preprocessedCanvas = this.preprocessImage(this.originalImage);
+                    const result = await this.worker.recognize(preprocessedCanvas);
+                    
+                    if (!result || !result.data) {
+                        throw new Error('Không nhận diện được văn bản');
+                    }
+                    
+                    this.textRegions = [];
+                    
+                    if (result.data.words && result.data.words.length > 0) {
+                        this.textRegions = result.data.words.filter(word => 
+                            word.confidence > 20 && word.text && word.text.trim().length > 0
+                        );
+                    }
+                    
+                    if (this.textRegions.length === 0 && result.data.lines) {
+                        this.textRegions = result.data.lines.filter(line => 
+                            line.confidence > 15 && line.text && line.text.trim().length > 0
+                        );
+                    }
+                    
+                    if (this.textRegions.length === 0 && result.data.text && result.data.text.trim().length > 0) {
+                        this.log('Sử dụng toàn bộ text', 'warning');
+                        this.textRegions = [{
+                            text: result.data.text,
+                            confidence: 50,
+                            bbox: {
+                                x0: this.originalImage.width * 0.1,
+                                y0: this.originalImage.height * 0.1,
+                                x1: this.originalImage.width * 0.9,
+                                y1: this.originalImage.height * 0.9
+                            }
+                        }];
+                    }
+                    
+                    this.log(`Tìm thấy ${this.textRegions.length} vùng text`, 'success');
+                    this.log(`Text: "${result.data.text}"`, 'info');
+                    
+                    if (this.textRegions.length === 0) {
+                        throw new Error('Không tìm thấy text. Thử ảnh rõ hơn!');
+                    }
+
+                    this.displayDetectedText();
+
+                    this.updateProgress(70, 'Đang dịch...');
+                    
+                    for (const region of this.textRegions) {
+                        try {
+                            region.translatedText = await this.translateText(region.text);
+                            this.log(`"${region.text}" → "${region.translatedText}"`, 'success');
+                        } catch (error) {
+                            region.translatedText = region.text;
+                        }
+                        await this.delay(300);
+                    }
+
+                    this.updateProgress(90, 'Đang tạo ảnh...');
+                    await this.applyTranslationToImage();
+                    
+                    this.updateProgress(100, 'Hoàn thành!');
+                    this.downloadBtn.disabled = false;
+                    this.log('Dịch thành công!', 'success');
+                } catch (error) {
+                    this.log(`Lỗi: ${error.message}`, 'error');
+                    await this.fallbackTranslation();
+                } finally {
+                    this.translateBtn.disabled = false;
+                }
+            }
+
+            async fallbackTranslation() {
+                const canvas = this.translatedCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = this.originalImage.width;
+                canvas.height = this.originalImage.height;
+                ctx.drawImage(this.originalImage, 0, 0);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.fillRect(50, 50, canvas.width - 100, 100);
+                ctx.fillStyle = 'red';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Không nhận diện được text', canvas.width / 2, 100);
+                
+                this.downloadBtn.disabled = false;
+            }
+
+            displayDetectedText() {
+                this.textItems.innerHTML = '';
+                
+                this.textRegions.forEach((region, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'text-item';
+                    div.innerHTML = `
+                        <div style="font-weight: bold;">[${index + 1}] ${region.text}</div>
+                        <div style="color: var(--success);" id="translated-${index}">Đang dịch...</div>
+                        <div style="font-size: 0.85rem; opacity: 0.7;">Độ chính xác: ${Math.round(region.confidence)}%</div>
+                    `;
+                    this.textItems.appendChild(div);
+                });
+            }
+
+            async translateText(text) {
+                const apiKey = this.apiKeyInput ? this.apiKeyInput.value.trim() : '';
+                const sourceLang = this.currentLanguage === 'jpn' ? 'ja' : 'en';
+                const targetLang = 'vi';
+                
+                // Nếu có API key, dùng Google Translate thực sự
+                if (apiKey) {
+                    try {
+                        // Dùng Google Translate API v2
+                        const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                q: text,
+                                source: sourceLang,
+                                target: targetLang,
+                                format: 'text'
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown'}`);
+                        }
+                        
+                        const data = await response.json();
+                        const translated = data.data.translations[0].translatedText;
+                        this.log(`✅ API: "${text}" → "${translated}"`, 'success');
+                        return translated;
+                        
+                    } catch (error) {
+                        this.log(`⚠️ API lỗi: ${error.message}. Dùng từ điển offline`, 'warning');
+                        return this.offlineTranslate(text);
+                    }
+                } else {
+                    // Không có API key, dùng từ điển offline
+                    this.log(`⚠️ Chưa có API Key. Dùng từ điển offline (hạn chế)`, 'warning');
+                    return this.offlineTranslate(text);
+                }
+            }
+            
+            offlineTranslate(text) {
+                // Từ điển offline cho trường hợp không có API
+                const phraseDictionary = {
+                    'possible to be reborn': 'có thể được tái sinh',
+                    'to be reborn': 'được tái sinh',
+                    'one sided love': 'tình yêu đơn phương',
+                    'one-sided love': 'tình yêu đơn phương',
+                    'a little bit': 'một chút',
+                    'if it\'s': 'nếu nó là',
+                    'if its': 'nếu nó là',
+                    'hey that\'s': 'ê, đó là',
+                };
+                
+                const wordDictionary = {
+                    'possible': 'có thể', 'reborn': 'tái sinh', 'hey': 'ê',
+                    'that\'s': 'đó là', 'thats': 'đó là', 'come': 'đến',
+                    'home': 'nhà', 'with': 'với', 'my': 'của tôi',
+                    'love': 'tình yêu', 'little': 'chút', 'bit': 'ít',
+                    'sooner': 'sớm hơn', 'wonder': 'tự hỏi', 'if': 'nếu',
+                    'anything': 'điều gì', 'could': 'có thể', 'would': 'sẽ',
+                    'change': 'thay đổi', 'differently': 'khác đi',
+                    'and': 'và', 'to': 'để', 'be': 'là', 'is': 'là',
+                    'the': '', 'a': '', 'an': '',
+                };
+                
+                let lowerText = text.toLowerCase().replace(/\s+/g, ' ').trim();
+                
+                // Tìm cụm từ
+                for (const [eng, vie] of Object.entries(phraseDictionary)) {
+                    if (lowerText.includes(eng)) {
+                        return this.capitalizeFirst(lowerText.replace(eng, vie));
+                    }
+                }
+                
+                // Dịch từng từ
+                const words = lowerText.split(/\s+/);
+                const translated = words.map(w => {
+                    const clean = w.replace(/[.,!?;:'"()]/g, '');
+                    return wordDictionary[clean] !== undefined ? wordDictionary[clean] : w;
+                }).filter(w => w !== '').join(' ');
+                
+                return this.capitalizeFirst(translated || text);
+            }
+            
+            capitalizeFirst(str) {
+                if (!str) return str;
+                return str.charAt(0).toUpperCase() + str.slice(1);
+            }
+
+            async applyTranslationToImage() {
+                const canvas = this.translatedCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = this.originalCanvas.width;
+                canvas.height = this.originalCanvas.height;
+                ctx.drawImage(this.originalImage, 0, 0, canvas.width, canvas.height);
+
+                const fontSize = parseInt(this.fontSizeSelect.value);
+                const textColor = this.textColorInput.value;
+                const bgColor = this.bgColorInput.value;
+                const bgOpacity = this.bgOpacityInput ? parseInt(this.bgOpacityInput.value) / 100 : 1;
+                const showBorder = this.showBorderCheckbox ? this.showBorderCheckbox.checked : false;
+                
+                for (const region of this.textRegions) {
+                    if (!region.translatedText || !region.bbox) continue;
+                    
+                    const bbox = region.bbox;
+                    const x0 = bbox.x0 * (canvas.width / this.originalImage.width);
+                    const y0 = bbox.y0 * (canvas.height / this.originalImage.height);
+                    const x1 = bbox.x1 * (canvas.width / this.originalImage.width);
+                    const y1 = bbox.y1 * (canvas.height / this.originalImage.height);
+                    
+                    const width = x1 - x0;
+                    const height = y1 - y0;
+                    const padding = 5;
+                    
+                    // XÓA CHỮ CŨ với độ trong suốt tùy chỉnh
+                    if (bgOpacity > 0) {
+                        ctx.globalAlpha = bgOpacity;
+                        ctx.fillStyle = bgColor;
+                        ctx.fillRect(
+                            Math.max(0, x0 - padding), 
+                            Math.max(0, y0 - padding), 
+                            width + padding * 2, 
+                            height + padding * 2
+                        );
+                        ctx.globalAlpha = 1.0;
+                    }
+                    
+                    // Vẽ viền nếu bật chế độ debug
+                    if (showBorder) {
+                        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(
+                            Math.max(0, x0 - padding), 
+                            Math.max(0, y0 - padding), 
+                            width + padding * 2, 
+                            height + padding * 2
+                        );
+                    }
+                    
+                    // CHÈN CHỮ DỊCH MỚI
+                    ctx.fillStyle = textColor;
+                    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                    ctx.textBaseline = 'middle';
+                    ctx.textAlign = 'center';
+                    
+                    // Tự động điều chỉnh font size
+                    let currentFontSize = fontSize;
+                    let textWidth = ctx.measureText(region.translatedText).width;
+                    
+                    while (textWidth > width - 10 && currentFontSize > 8) {
+                        currentFontSize--;
+                        ctx.font = `bold ${currentFontSize}px Arial, sans-serif`;
+                        textWidth = ctx.measureText(region.translatedText).width;
+                    }
+                    
+                    // Chia text thành nhiều dòng nếu quá dài
+                    const maxWidth = width - 10;
+                    const words = region.translatedText.split(' ');
+                    const lines = [];
+                    let currentLine = '';
+                    
+                    for (const word of words) {
+                        const testLine = currentLine ? `${currentLine} ${word}` : word;
+                        const testWidth = ctx.measureText(testLine).width;
+                        
+                        if (testWidth > maxWidth && currentLine) {
+                            lines.push(currentLine);
+                            currentLine = word;
+                        } else {
+                            currentLine = testLine;
+                        }
+                    }
+                    if (currentLine) lines.push(currentLine);
+                    
+                    // Vẽ text với stroke để dễ đọc
+                    const lineHeight = currentFontSize + 3;
+                    const totalHeight = lines.length * lineHeight;
+                    const startY = y0 + (height - totalHeight) / 2 + lineHeight / 2;
+                    
+                    lines.forEach((line, index) => {
+                        const textX = x0 + width / 2;
+                        const textY = startY + index * lineHeight;
+                        
+                        // Vẽ stroke trắng/đen để text nổi bật
+                        const strokeColor = this.getContrastColor(textColor);
+                        ctx.strokeStyle = strokeColor;
+                        ctx.lineWidth = 3;
+                        ctx.strokeText(line, textX, textY);
+                        
+                        // Vẽ text chính
+                        ctx.fillStyle = textColor;
+                        ctx.fillText(line, textX, textY);
+                    });
+                    
+                    // Cập nhật preview
+                    const elem = document.getElementById(`translated-${this.textRegions.indexOf(region)}`);
+                    if (elem) elem.textContent = region.translatedText;
+                }
+                
+                this.log('✅ Hoàn thành vẽ bản dịch', 'success');
+            }
+            
+            getContrastColor(hexColor) {
+                // Tính màu tương phản cho stroke
+                const r = parseInt(hexColor.substr(1,2), 16);
+                const g = parseInt(hexColor.substr(3,2), 16);
+                const b = parseInt(hexColor.substr(5,2), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness > 128 ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)';
+            }
+
+            downloadImage() {
+                const link = document.createElement('a');
+                link.download = `translated-${Date.now()}.png`;
+                link.href = this.translatedCanvas.toDataURL('image/png');
+                link.click();
+                this.log('Đã tải xuống', 'success');
+            }
+
+            clearAll() {
+                this.originalImage = null;
+                const ctx1 = this.originalCanvas.getContext('2d');
+                const ctx2 = this.translatedCanvas.getContext('2d');
+                ctx1.clearRect(0, 0, this.originalCanvas.width, this.originalCanvas.height);
+                ctx2.clearRect(0, 0, this.translatedCanvas.width, this.translatedCanvas.height);
+                this.translateBtn.disabled = true;
+                this.downloadBtn.disabled = true;
+                this.imageInput.value = '';
+                this.textItems.innerHTML = '';
+                this.updateProgress(0, 'Sẵn sàng');
+                this.log('Đã xóa', 'info');
+            }
+
+            updateProgress(percent, text) {
+                this.progressBar.style.width = `${percent}%`;
+                this.progressText.textContent = text;
+                this.progressPercent.textContent = `${percent}%`;
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logLine = document.createElement('div');
+                logLine.className = `debug-line ${type}`;
+                logLine.textContent = `[${timestamp}] ${message}`;
+                this.debugOutput.appendChild(logLine);
+                this.debugOutput.scrollTop = this.debugOutput.scrollHeight;
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new MangaTranslator();
+        });
+    </script>
+</body>
+</html>
